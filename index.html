@@ -1,75 +1,116 @@
 <!doctype html>
 <html lang="vi">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta charset="utf-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>MyOS v10.0</title>
 
-<title>MyOS</title>
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="./manifest.json">
 
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="MyOS">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#000000">
+  <!-- Theme (CSS đang chỉnh, chỉ link) -->
+  <link rel="stylesheet" href="./css/myos-theme.css">
 
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-180.png">
-
-<style>
-html,body{
-  margin:0;
-  height:100%;
-  background:#000;
-  color:#fff;
-  font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;
-}
-body{
-  padding-top:env(safe-area-inset-top);
-  padding-bottom:env(safe-area-inset-bottom);
-}
-#app{
-  min-height:100%;
-  display:flex;
-  flex-direction:column;
-}
-header{
-  padding:16px;
-  border-bottom:1px solid #222;
-}
-main{
-  flex:1;
-  padding:16px;
-}
-footer{
-  padding:12px;
-  font-size:12px;
-  color:#aaa;
-}
-</style>
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MyOS v10.0">
 </head>
 
-<body>
-<div id="app">
-  <header>
-    <h1>MyOS</h1>
-    <p>Chạy như app khi Add to Home Screen</p>
+<body class="density-comfortable">
+
+  <!-- APP BAR -->
+  <header class="appbar glass">
+    <div class="h1">MyOS v10.0</div>
+    <div style="flex:1"></div>
+    <div class="chip" id="net-status">OFFLINE</div>
   </header>
 
-  <main>
-    <p id="status">Đang kiểm tra...</p>
+  <!-- MAIN -->
+  <main class="container">
+
+    <!-- CARD: Knowledge Core -->
+    <section class="glass card card-hidden" id="knowledge-card">
+      <div class="h1">Knowledge Core</div>
+      <div class="small">Local-first · Offline-ready</div>
+      <div style="margin-top:16px">
+        <button class="btn" id="open-knowledge">Mở</button>
+      </div>
+    </section>
+
+    <!-- CARD: Stats -->
+    <section class="card">
+      <div class="row">
+        <div>
+          <div class="h1">Thống kê</div>
+          <div class="small" id="stat-text">Chưa đồng bộ</div>
+        </div>
+        <button class="btn secondary" id="sync-btn">Sync</button>
+      </div>
+    </section>
+
+    <!-- UTIL GRID -->
+    <section style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="card util" data-util="timer">
+        <div style="font-size:24px">⏱️</div>
+        <div class="small">Pomodoro</div>
+      </div>
+      <div class="card util" data-util="files">
+        <div style="font-size:24px">📂</div>
+        <div class="small">Tệp tin</div>
+      </div>
+    </section>
+
   </main>
 
-  <footer>
-    Mở bằng Safari → Share → Add to Home Screen
-  </footer>
-</div>
+  <!-- MODULES -->
+  <script type="module">
+    import { popIn } from './js/anim-helper.js';
+    import { probeOnline } from './js/network.js';
+    import { flushOutbox } from './js/outbox.js';
 
-<script>
-function isStandalone(){
-  return window.matchMedia('(display-mode: standalone)').matches
-      || window.navigator.standalone === true;
-}
-document.getElementById('status').innerText =
-  'Standalone: ' + (isStandalone() ? 'YES' : 'NO');
+    const card = document.getElementById('knowledge-card');
+    const openBtn = document.getElementById('open-knowledge');
+    const netChip = document.getElementById('net-status');
+    const syncBtn = document.getElementById('sync-btn');
+
+    // Animation open (60Hz-safe)
+    openBtn.addEventListener('click', () => {
+      card.classList.remove('card-hidden');
+      popIn(card, { duration: 220 });
+      if (navigator.vibrate) navigator.vibrate(10);
+    }, { passive: true });
+
+    // Network status (probe-based)
+    async function updateNetwork() {
+      const ok = await probeOnline('/__probe', 5000);
+      netChip.textContent = ok ? 'ONLINE' : 'OFFLINE';
+    }
+    updateNetwork();
+
+    // Manual sync (iOS-safe)
+    syncBtn.addEventListener('click', async () => {
+      await flushOutbox();
+      updateNetwork();
+    });
+
+    // Service Worker register
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js', { scope: './' });
+    }
+  </script>
+
+<script type="module">
+  import { popIn } from './js/anim-helper.js';
+
+  const btn = document.getElementById('open');
+  const card = document.getElementById('card');
+
+  btn.addEventListener('click', () => {
+    card.classList.remove('card-hidden');
+    popIn(card, { duration: 220 });
+  }, { passive: true });
 </script>
 </body>
 </html>
